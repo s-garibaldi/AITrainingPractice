@@ -1,0 +1,230 @@
+# Import required module
+import random
+
+# Number of perceptron nodes (output units)
+num_nodes = 16
+
+# Number of inputs to each node (e.g., 16 for a 4x4 image)
+input_dim = 16
+
+# Learning rate for weight updates
+learning_rate = 0.1
+
+# Number of training epochs (full passes over the data)
+epochs = 100
+
+# Initialize weights: a list of lists, one list per node, each with input_dim weights
+weights = []
+for node in range(num_nodes):
+    node_weights = []
+    for i in range(input_dim):
+        # Initialize each weight to a small random value between -0.5 and 0.5
+        w = (random.random() - 0.5)
+        node_weights.append(w)
+    weights.append(node_weights)
+
+# Initialize biases: one bias per node, all set to zero initially
+biases = []
+for node in range(num_nodes):
+    biases.append(0.0)
+
+# Step 2: Forward pass
+
+def print_grid(vector, symbol_on='█', symbol_off='.'):
+    """
+    Print a 16-element vector as a 4x4 grid using symbols.
+    symbol_on: symbol for 1
+    symbol_off: symbol for 0
+    """
+    for i in range(4):
+        row = vector[i*4:(i+1)*4]
+        print(' '.join([symbol_on if x else symbol_off for x in row]))
+
+def step_function(x):
+    # Step activation: returns 1 if x > 0, else 0
+    if x > 0:
+        return 1
+    else:
+        return 0
+
+def forward_pass(input_vector):
+    outputs = []  # To store the output of each node
+    for node in range(num_nodes):
+        weighted_sum = 0
+        for i in range(input_dim):
+            weighted_sum += weights[node][i] * input_vector[i]
+        weighted_sum += biases[node]  # Add the bias for this node
+        node_output = step_function(weighted_sum)
+        outputs.append(node_output)
+    return outputs
+
+def train_perceptron(X_train, Y_train, verbose=False):
+    """
+    X_train: list of input vectors (each of length input_dim)
+    Y_train: list of target output vectors (each of length num_nodes)
+    verbose: if True, print detailed training info
+    """
+    global weights, biases
+    for epoch in range(epochs):
+        for idx in range(len(X_train)):
+            x = X_train[idx]
+            y_true = Y_train[idx]
+            y_pred = forward_pass(x)
+            for node in range(num_nodes):
+                error = y_true[node] - y_pred[node]
+                # Update weights and bias for this node
+                for i in range(input_dim):
+                    weights[node][i] += learning_rate * error * x[i]
+                biases[node] += learning_rate * error
+
+def evaluate_perceptron(X_test, Y_test, show_table=False):
+    """
+    X_test: list of input vectors (each of length input_dim)
+    Y_test: list of target output vectors (each of length num_nodes)
+    show_table: if True, print a summary table of predictions vs. actuals
+    """
+    correct = 0
+    total = len(X_test) * num_nodes
+    all_preds = []
+    for idx in range(len(X_test)):
+        x = X_test[idx]
+        y_true = Y_test[idx]
+        y_pred = forward_pass(x)
+        all_preds.append((y_pred, y_true))
+        for node in range(num_nodes):
+            if y_pred[node] == y_true[node]:
+                correct += 1
+    accuracy = correct / total if total > 0 else 0
+    print(f"Perceptron accuracy: {accuracy * 100:.2f}%")
+    if show_table:
+        print("\nPrediction vs. Actual Table:")
+        print("Idx | Prediction Grid      | Actual Grid")
+        print("----+----------------------+----------------------")
+        for idx, (pred, actual) in enumerate(all_preds):
+            print(f"{idx:3} | Prediction:")
+            print_grid(pred)
+            print("    | Actual:")
+            print_grid(actual)
+            print("    +----------------------+----------------------")
+
+def print_weights_grids():
+    print("\nCurrent weights for each node (as 4x4 grid):")
+    for node in range(num_nodes):
+        print(f"Node {node}:")
+        grid = []
+        for i in range(4):
+            row = []
+            for j in range(4):
+                w = weights[node][i*4 + j]
+                if w > 0.1:
+                    row.append('+')
+                elif w < -0.1:
+                    row.append('-')
+                else:
+                    row.append('.')
+            grid.append(' '.join(row))
+        for row in grid:
+            print(row)
+        print()
+
+if __name__ == "__main__":
+    # Example usage:
+    sample_input = [1] + [0]*15  # Example input vector of length 16
+    output_vector = forward_pass(sample_input)
+    print("Output for sample input:", output_vector)
+
+    # Diagonal line (top-left to bottom-right)
+    diag = [
+        1,0,0,0,
+        0,1,0,0,
+        0,0,1,0,
+        0,0,0,1
+    ]
+
+    # Cross (center row and center column)
+    cross = [
+        0,1,0,0,
+        1,1,1,0,
+        0,1,0,0,
+        0,0,0,0
+    ]
+
+    # Square border
+    border = [
+        1,1,1,1,
+        1,0,0,1,
+        1,0,0,1,
+        1,1,1,1
+    ]
+
+    # Add these to your training data
+    X_train = [diag, cross, border]
+    Y_train = [diag, cross, border]  # If you want the perceptron to reproduce the pattern
+    print("\nTraining perceptron with verbose output:")
+    train_perceptron(X_train, Y_train, verbose=True)
+    # Test after training
+    print("\nOutput after training for [1, 0, ..., 0]:", forward_pass([1] + [0]*15))
+    print("Output after training for [0, 1, ..., 0]:", forward_pass([0] + [1]*15))
+    print("Output after training for [0, 0, ..., 0]:", forward_pass([0]*16))
+
+    # Dummy test data
+    X_test = [
+        [1] + [0]*15,
+        [0] + [1]*15,
+        [0]*16
+    ]
+    Y_test = [
+        [1] + [0]*15,
+        [0]*16,
+        [0]*16
+    ]
+    print("\nEvaluating perceptron on test data:")
+    evaluate_perceptron(X_test, Y_test, show_table=True)
+
+    # --- New: Loop for adding patterns and checking separability ---
+    print("\n--- Linear Separability Checker (Multi-pattern) ---")
+    print("Enter patterns one by one. Type 'q' or 'quit' to exit.")
+    all_patterns = []
+    def get_user_input_vector_or_quit():
+        while True:
+            user_input = input("Input (or 'q' to quit, or 'weights' to view weights): ").strip()
+            if user_input.lower() in ('q', 'quit'):
+                return None
+            if user_input.lower() == 'weights':
+                print_weights_grids()
+                continue
+            parts = user_input.split()
+            if len(parts) != 16 or any(p not in ('0', '1') for p in parts):
+                print("Invalid input. Please enter exactly 16 numbers, each 0 or 1, or 'q' to quit, or 'weights' to view weights.")
+                continue
+            return [int(p) for p in parts]
+
+    while True:
+        pattern = get_user_input_vector_or_quit()
+        if pattern is None:
+            print("Exiting.")
+            break
+        all_patterns.append(pattern)
+        # Reset weights and biases
+        weights = []
+        for node in range(num_nodes):
+            node_weights = []
+            for i in range(input_dim):
+                w = (random.random() - 0.5)
+                node_weights.append(w)
+            weights.append(node_weights)
+        biases = [0.0 for _ in range(num_nodes)]
+        # Train perceptron on all patterns so far
+        train_perceptron(all_patterns, all_patterns)
+        # Check if all patterns are learned
+        all_learned = True
+        for p in all_patterns:
+            pred = forward_pass(p)
+            if pred != p:
+                all_learned = False
+                break
+        if all_learned:
+            print("\nAll patterns so far are linearly separable. Latest prediction as 4x4 grid:")
+            print_grid(forward_pass(pattern))
+        else:
+            print("\nThe set of patterns is NOT linearly separable for a single-layer perceptron.")
