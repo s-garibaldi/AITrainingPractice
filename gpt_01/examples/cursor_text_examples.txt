@@ -1,0 +1,10 @@
+move cursor to the right
+move cursor to the left
+select the word
+copy the selection
+paste the text
+delete the line
+undo the last action
+redo the last action
+move to the beginning of the line
+move to the end of the line
